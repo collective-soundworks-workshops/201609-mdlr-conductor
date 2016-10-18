@@ -1,2 +1,8 @@
 // Entry point for application specific styles
-.background { background-color: rgb(0, 0, 0); }
+
+
+.phase-none { background-color: rgb(0, 0, 0); }
+.phase-1 { background-color: rgb(220, 80, 30); }
+.phase-1-screen-touched { background-color: rgb(250, 0, 0); }
+.phase-2 { background-color: rgb(90, 34, 220); }
+.phase-2-screen-touched { background-color: rgb(0, 0, 220); }
