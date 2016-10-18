@@ -73,16 +73,13 @@ class LoopTrack extends audio.TimeEngine {
   }
 
   advanceTime(syncTime) {
-    console.log('adv time', this.lastUpdated);
     const audioTime = this.sync.getAudioTime(syncTime);
 
     // discard source if too long without update
     if(!this.local && syncTime > this.lastUpdated + maxIdleTime) {
-      console.log('STOP');
       this.stop(audioTime);
       return; // stop scheduling
     }
-    console.log('Start');
     this.start(audioTime);
 
     return syncTime + this.duration;
@@ -163,11 +160,9 @@ export default class AudioPlayer {
       track.setBuffer(this.buffers[id], this.quantization);
 
       this.tracks[id] = track;
-      console.log('create track');
     }
 
     track.launch();
-    console.log('launch track');
 
     return track;
   }
@@ -203,5 +198,15 @@ export default class AudioPlayer {
   disconnect(node) {
     const localTrack = this.tracks.local;
     localTrack.disconnect(node);
+  }
+
+  stop(){
+    // stop scheduler
+    this.scheduler.clear();
+
+    // stop each track
+    Object.keys(this.tracks).forEach((key, index) => {
+      this.tracks[key].stop(0);
+    });
   }
 }

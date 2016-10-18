@@ -125,12 +125,18 @@ export default class PlayerExperience extends soundworks.Experience {
   }
 
   stop(){
-    // // remove listeners
+    // remove listeners
     this.surface._listeners.touchstart = [];
     // this.surface._listeners.touchmove = [];
     this.surface._listeners.touchend = [];  
     // this.motionInput.removeListener('accelerationIncludingGravity');  
     // this.motionInput.removeListener('deviceorientation');  
+
+    this.beacon = null;
+    this.beaconCallback = function(){};
+
+    // remove audio tracks
+    this.audioPlayer.stop();
   }
 
   // -------------------------------------------------------------------------------------------
@@ -155,7 +161,7 @@ export default class PlayerExperience extends soundworks.Experience {
     // INIT FAKE BEACON (for computer based debug)
     else { 
       this.beacon = {major:0, minor: client.index + AddedOffsetToPlayerBeaconId};
-      this.beacon.rssiToDist = function(){return 3.5 + 2*Math.random()};    
+      this.beacon.rssiToDist = function(){return 1.5 + 2*Math.random()};    
       window.setInterval(() => {
         var pluginResult = { beacons : [] };
         for (let i = 0; i < 4; i++) {
