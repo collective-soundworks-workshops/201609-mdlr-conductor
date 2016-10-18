@@ -58,12 +58,16 @@ export default class PlayerExperience extends soundworks.Experience {
 
       this.init();
       
-    
-
       // init audio source spatializer
       let roomReverb = false;
       this.spatSourceHandler = new SpatSourcesHandler(this.loader.buffers, roomReverb);
       this.spatSourceHandler.start();
+
+      // this.oscillator = audioContext.createOscillator();
+      // this.oscillator.connect(audioContext.destination);
+      // this.oscillator.type = 'square';
+      // this.oscillator.frequency.value = 100; // valeur en hertz      
+      // this.oscillator.start();
 
     }
 
@@ -71,30 +75,33 @@ export default class PlayerExperience extends soundworks.Experience {
     if (this.motionInput.isAvailable('deviceorientation')) {
       this.motionInput.addListener('deviceorientation', (data) => {
         // display orientation info on screen
-        document.getElementById("value0").innerHTML = Math.round(data[0]*10)/10;
-        document.getElementById("value1").innerHTML = Math.round(data[1]*10)/10;
-        document.getElementById("value2").innerHTML = Math.round(data[2]*10)/10;
         // this.spatSourceHandler.setListenerAim(data[0], data[1]);
         // if selected source (touch) then..
-        this.currentOrientation.azim = data[0];
-        if( this.beingMovedSrcId > -1 ){
-          // move source
-          let val = data[0];
-          if (Math.abs(data[1]) > 90) val -= 180;
-          this.spatSourceHandler.setSourcePos( this.beingMovedSrcId, val, 0 );
-          
-          // apply effect (after remapping of data to traditional roll)
-          val = - data[2];
-          if (Math.abs(data[1]) > 90) val = 180 + val;
-          val = Math.max(Math.min( 1 - (val / 180), 1), 0);
-          this.spatSourceHandler.setSourceEffect( this.beingMovedSrcId, val );
 
-          // apply volume (-90 90 whatever "effect angle" value -> DOESN T WORK)
-          // if( val > 90 ) val = 180 - val;
-          // if( val < -90 ) val = -180 - val;
-          val = Math.min( Math.max(0, (90 + data[1]) / 180), 1);
-          this.spatSourceHandler.setSourceVolume( this.beingMovedSrcId, val );
+        // move source: stabilize azimuth
+        let val = data[0];
+        if (Math.abs(data[1]) > 90){
+          if( data[0] < 180)  val =  val + 180;
+          else val = val - 180;
         }
+        this.spatSourceHandler.setSourcePos( this.beingMovedSrcId, val, 0 );
+        this.currentOrientation.azim = val; // keep local copy for nearest source detection latter
+        document.getElementById("value0").innerHTML = Math.round(val*10)/10;
+
+        // apply effect (after remapping of data to traditional roll)
+        val = - data[2];
+        if (Math.abs(data[1]) > 90) val = 180 + val;
+        val = Math.max(Math.min( 1 - (val / 180), 1), 0);
+        this.spatSourceHandler.setSourceEffect( this.beingMovedSrcId, val );
+        document.getElementById("value1").innerHTML = Math.round(val*10)/10;
+
+        // apply volume (-90 90 whatever "effect angle" value -> DOESN T WORK)
+        val = data[1];
+        if( data[1] > 90 ) val = 180 - data[1];
+        if( data[1] < -90 ) val = -180 - data[1];
+        val = Math.min( Math.max(0, (90 + val) / 180), 1);
+        this.spatSourceHandler.setSourceVolume( this.beingMovedSrcId, val );
+        document.getElementById("value2").innerHTML = Math.round(val*10)/10;
 
       });
     }
@@ -122,7 +129,7 @@ export default class PlayerExperience extends soundworks.Experience {
         
         // select closest source
         this.beingMovedSrcId = this.spatSourceHandler.getNearestSource(this.currentOrientation.azim);
-        console.log('source being moved:', this.beingMovedSrcId);
+        // console.log('source being moved:', this.beingMovedSrcId);
         
         // change bkg color
         this.view.$el.lastElementChild.className = "foreground phase-" + this.phaseId + "-screen-touched";
