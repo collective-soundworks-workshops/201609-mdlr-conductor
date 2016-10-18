@@ -45,6 +45,10 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
 
   if (!config.standalone)
     data.socketIO = config.socketIO;
+  
+  if (!httpRequest.query.cordova) {
+    data.socketIO.url = '';
+  }
 
   return data;  
 });

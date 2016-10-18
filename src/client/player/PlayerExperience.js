@@ -2,7 +2,6 @@ import * as soundworks from 'soundworks/client';
 import * as soundworksCordova from 'soundworks-cordova/client';
 
 import SpatSourcesHandler from './SpatSourcesHandler';
-import AmbisonicPlayer from './AmbisonicPlayer';
 import PlayerRenderer from './PlayerRenderer';
 
 const audioContext = soundworks.audioContext;
@@ -15,7 +14,7 @@ const viewTemplate = `
     <div class="section-top flex-middle">
       <p class="big">Beacon ID: <%= major %>.<%= minor %></p>
       </br>
-      <p class="small"> shake to shift mode, touch to reset orientation</p>
+      <p class="small"> touch to grab instrument </p>
     </div>
 
     <div class="section-center flex-center">
@@ -54,10 +53,8 @@ export default class PlayerExperience extends soundworks.Experience {
 
     // local attributes
     this.lastShakeTime = 0.0;
-    this.audioMode = 1; // 0: mono-spat, 1: HOA file
-    this.ambiFileId = 0;
-    this.lastDistHysteresisTime = 0.0;
-
+    this.beingMovedSrcId = -1;
+    this.currentOrientation = {azim:0, elev:0};
   }
 
   init() {
@@ -68,7 +65,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.viewOptions = { preservePixelRatio: true };
     this.view = this.createView();
     this.renderer = new PlayerRenderer();
-    this.view.addRenderer(this.renderer);    
+    this.view.addRenderer(this.renderer);
   }
 
   start() {
@@ -84,14 +81,7 @@ export default class PlayerExperience extends soundworks.Experience {
     // init audio source spatializer
     let roomReverb = false;
     this.spatSourceHandler = new SpatSourcesHandler(this.loader.buffers, roomReverb);
-
-    // init HOA player
-    this.ambisonicPlayer = new AmbisonicPlayer(roomReverb);
-
-    if( this.audioMode == 0 )
-      this.spatSourceHandler.start();
-    else
-      this.ambisonicPlayer.start( this.ambiFileId );
+    this.spatSourceHandler.start();
 
     // setup motion input listener (update audio listener aim based on device orientation)
     if (this.motionInput.isAvailable('deviceorientation')) {
@@ -100,11 +90,28 @@ export default class PlayerExperience extends soundworks.Experience {
         document.getElementById("value0").innerHTML = Math.round(data[0]*10)/10;
         document.getElementById("value1").innerHTML = Math.round(data[1]*10)/10;
         document.getElementById("value2").innerHTML = Math.round(data[2]*10)/10;
-        // set audio source position
-        if( this.audioMode == 0 )
-          this.spatSourceHandler.setListenerAim(data[0], data[1]);
-        else
-          this.ambisonicPlayer.setListenerAim(data[0], data[1]);
+        // this.spatSourceHandler.setListenerAim(data[0], data[1]);
+        // if selected source (touch) then..
+        this.currentOrientation.azim = data[0];
+        if( this.beingMovedSrcId > -1 ){
+          // move source
+          let val = data[0];
+          if (Math.abs(data[1]) > 90) val -= 180;
+          this.spatSourceHandler.setSourcePos( this.beingMovedSrcId, val, 0 );
+          
+          // apply effect (after remapping of data to traditional roll)
+          val = - data[2];
+          if (Math.abs(data[1]) > 90) val = 180 + val;
+          val = Math.max(Math.min( 1 - (val / 180), 1), 0);
+          this.spatSourceHandler.setSourceEffect( this.beingMovedSrcId, val );
+
+          // apply volume (-90 90 whatever "effect angle" value -> DOESN T WORK)
+          // if( val > 90 ) val = 180 - val;
+          // if( val < -90 ) val = -180 - val;
+          val = Math.min( Math.max(0, (90 + data[1]) / 180), 1);
+          this.spatSourceHandler.setSourceVolume( this.beingMovedSrcId, val );
+        }
+
       });
     }
 
@@ -119,17 +126,8 @@ export default class PlayerExperience extends soundworks.Experience {
           if (mag > 40 && ( (audioContext.currentTime - this.lastShakeTime) > 0.5) ){
             // update throttle timer
             this.lastShakeTime = audioContext.currentTime;
-            // switch mode
-            if( this.audioMode == 0 ){
-              this.audioMode = 1;
-              this.spatSourceHandler.stop();
-              this.ambisonicPlayer.start( this.ambiFileId );
-            }
-            else{
-              this.audioMode = 0;
-              this.ambisonicPlayer.stop(); 
-              this.spatSourceHandler.start();
-            }
+            // do something
+            // ...
           }
       });
     }
@@ -138,13 +136,34 @@ export default class PlayerExperience extends soundworks.Experience {
     const surface = new soundworks.TouchSurface(this.view.$el);
     // setup touch listeners (reset listener orientation on touch)
     surface.addListener('touchstart', (id, normX, normY) => {
-        // reset listener orientation (azim only)
-        if( this.audioMode == 0 )
-          this.spatSourceHandler.resetListenerAim();
-        else
-          this.ambisonicPlayer.resetListenerAim();
+      // if( this.beingMovedSrcId == -1 ){ // DEBUG
+        
+        // select closest source
+        this.beingMovedSrcId = this.spatSourceHandler.getNearestSource(this.currentOrientation.azim);
+        console.log('source being moved:', this.beingMovedSrcId);
+        
+        // change bkg color
+        this.renderer.setBkgColor([0, 100, 0]);
+      // } // DEBUG
+      // else{ // DEBUG (with if above and comments below)
+      //   this.beingMovedSrcId = -1;
+      //   this.renderer.setBkgColor([0, 0, 0]);        
+      // }
     });
+    surface.addListener('touchend', (id, normX, normY) => {
+      // disable source motion
+      this.beingMovedSrcId = -1;
+      // change bkg color
+      this.renderer.setBkgColor([0, 0, 0]);
+    });    
+    surface.addListener('touchmove', (id, normX, normY) => {
+      // let val = normX;;
+      // this.spatSourceHandler.setSourceEffect( this.beingMovedSrcId, val );
 
+      // apply volume
+      // val = 1 - normY;
+      // this.spatSourceHandler.setSourceVolume( this.beingMovedSrcId, val );
+    }); 
   }
 
   // -------------------------------------------------------------------------------------------
@@ -198,42 +217,6 @@ export default class PlayerExperience extends soundworks.Experience {
     });
     document.getElementById('logValues').innerHTML = log;
 
-    // select current ambisonic file based on distance to beacon 0
-    pluginResult.beacons.forEach((beacon) => {
-      if( beacon.minor == 0 ){
-        // get ambisonic file id
-        let dist = this.beacon.rssiToDist(beacon.rssi);
-        let newAmbiFileId = this.ambiFileId;
-        let bkgColor = [0,0,0];
-        if( dist < 2.0 ){ 
-          newAmbiFileId = 0;
-          bkgColor = [0,0,100];
-        }
-        else if( dist > 3.0 && dist < 4.0 ){ 
-          newAmbiFileId = 1;
-          bkgColor = [100,0,0];
-        }
-        else if( dist > 5.0 ){ 
-          newAmbiFileId = 2;
-          bkgColor = [0,100,0];
-        }
-
-        // set ambisonic file id if 1) new and 2) hysteresys
-        if( (newAmbiFileId != this.ambiFileId) && 
-          (audioContext.currentTime - this.lastDistHysteresisTime) > 2.0 &&
-          (this.audioMode == 1) ){
-          // update local
-          this.lastDistHysteresisTime = audioContext.currentTime;
-          this.ambiFileId = newAmbiFileId;
-          // update player
-          this.ambisonicPlayer.stop();
-          this.ambisonicPlayer.start( this.ambiFileId );
-          // update bkg color
-          this.renderer.setBkgColor(bkgColor);
-        }
-
-      }
-    });
   }
 
   // -------------------------------------------------------------------------------------------

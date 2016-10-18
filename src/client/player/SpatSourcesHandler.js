@@ -17,7 +17,7 @@ export default class SpatSourcesHandler {
         this.gainOut.gain.value = 0.5;
 
         // create ambisonic decoder (common to all sources)
-        this.ambisonicOrder = 1;
+        this.ambisonicOrder = 3;
         this.decoder = new ambisonics.binDecoder(audioContext, this.ambisonicOrder);
 
         // load HOA to binaural filters in decoder
@@ -44,12 +44,16 @@ export default class SpatSourcesHandler {
         this.listenerAimOffset = {azim:0, elev:0};
         this.lastListenerAim = {azim:0, elev:0};
         this.buffers = bufferSources;
+
+        // bind
+        this.getNearestSource = this.getNearestSource.bind(this);
+
     }
 
     // start all sources
     start(){
         for( let i = 0; i < this.buffers.length; i ++ ){
-          let initAzim = (360 / this.buffers.length) * i; // equi on circle
+          let initAzim = (360 / this.buffers.length) * i * 0; // equi on circle
           this.startSource(i, initAzim);
         }        
     }
@@ -75,18 +79,33 @@ export default class SpatSourcesHandler {
         src.buffer = this.buffers[id];
         src.loop = loop;
 
-        // create encoder (source-specific to be able to set source-specific position latter)
-        let encoder = new ambisonics.monoEncoder(audioContext, this.ambisonicOrder);
+        // create source gain
+        let gain = audioContext.createGain();
+        gain.gain.value = 1.0;
 
+        // create / init encoder (source-specific to be able to set source-specific position latter)
+        let encoder = new ambisonics.monoEncoder(audioContext, this.ambisonicOrder);
+        encoder.azim = initAzim;
+        encoder.elev = initElev;
+        encoder.updateGains();
+
+        // create / init effect (source specific)
+        let filter = audioContext.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 22050;
+        let effect = {filter:filter};
+        
         // connect graph
-        src.connect(encoder.in);
+        src.connect(gain);
+        gain.connect(filter);
+        filter.connect(encoder.in);
         encoder.out.connect(this.rotator.in);
 
         // play source
         src.start(0);
 
         // store new spat source
-        this.sourceMap.set(id, {src:src, enc:encoder, azim:initAzim, elev:initElev});
+        this.sourceMap.set(id, {src:src, enc:encoder, gain:gain, effect:effect});
     }
 
     // set source id position
@@ -99,11 +118,55 @@ export default class SpatSourcesHandler {
             let spatSrc = this.sourceMap.get(id);
             
             // set spat source encoder azim / elev values
-            spatSrc.enc.azim = azim;
-            spatSrc.enc.elev = elev;
+            let needUpdate = false;
+            if( Math.abs(azim - spatSrc.enc.azim) > 3 ){
+                spatSrc.enc.azim = azim;    
+                needUpdate = true;
+            }
+            if( Math.abs(elev - spatSrc.enc.elev) > 3 ){
+                spatSrc.enc.elev = elev;
+                needUpdate = true;
+            }
             
             // update encoder gains (apply azim / elev mod)
-            spatSrc.enc.updateGains();
+            if( needUpdate )
+                spatSrc.enc.updateGains();
+        }
+    }
+
+    // set source id effect value (value in [0, 1])
+    setSourceEffect(id, value) {
+
+        // check if source has been initialized (added to local map)
+        if( this.sourceMap.has(id) ){
+
+            // get spat source
+            let spatSrc = this.sourceMap.get(id);
+
+            // mapping to effect value
+            let cutoffFreq = 11000*(Math.exp( Math.pow(value, 3) ) - 1);
+            // console.log(value, cutoffFreq);
+            spatSrc.effect.filter.frequency.value = cutoffFreq;
+        }
+    }
+
+    // set source id volume value (value in [0, 1])
+    setSourceVolume(id, value) {
+
+        // check if source has been initialized (added to local map)
+        if( this.sourceMap.has(id) ){
+
+            // get spat source
+            let spatSrc = this.sourceMap.get(id);
+
+            // mapping to gain value
+            let gain = 4 * value;
+
+            // apply
+            // spatSrc.gain.cancelScheduledValues(audioContext.currentTime);
+            // spatSrc.gain.setValueAtTime(spatSrc.gain.gain.value, audioContext.currentTime);
+            // spatSrc.gain.linearRampToValueAtTime(gain, audioContext.currentTime + 0.1);
+            spatSrc.gain.gain.value = gain;
         }
     }
 
@@ -133,6 +196,19 @@ export default class SpatSourcesHandler {
 
         // update listener aim (update encoder gains, useless when player constantly stream deviceorientation data)
         this.setListenerAim(this.lastListenerAim.azim, this.lastListenerAim.elev);
+    }
+
+    getNearestSource(azim){
+        let srcId = -1;
+        let dist = Infinity;
+        this.sourceMap.forEach( (spatSrc, index) => {
+            let newDist = Math.abs( spatSrc.enc.azim - azim );
+            if( newDist < dist ){
+                srcId = index;
+                dist = newDist;
+            }
+        });
+        return srcId;
     }
 
 }
