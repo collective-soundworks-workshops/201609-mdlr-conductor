@@ -50,14 +50,14 @@ export default class SpatSourcesHandler {
 
     }
 
-    // start all sources
-    start(){
-        for( let i = 0; i < this.buffers.length; i ++ ){
-          let initAzim = (180 / (this.buffers.length - 1) ) * i - 90; // equi in front
-          if (initAzim < 0) initAzim = 360 + initAzim;
-          this.startSource(i, initAzim);
-        }        
-    }
+    // // start all sources
+    // start(){
+    //     for( let i = 0; i < this.buffers.length; i ++ ){
+    //       let initAzim = (180 / (this.buffers.length - 1) ) * i - 90; // equi in front
+    //       if (initAzim < 0) initAzim = 360 + initAzim;
+    //       this.startSource(i, initAzim);
+    //     }        
+    // }
 
     // stop all sources
     stop(){

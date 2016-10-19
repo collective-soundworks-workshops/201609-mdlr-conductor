@@ -47,7 +47,6 @@ export default class PlayerExperience extends soundworks.Experience {
     this.view.$el.lastElementChild.className = "foreground phase-" + this.phaseId;
 
     this.hasStarted = true;
-
   }
 
   start() {
@@ -61,7 +60,15 @@ export default class PlayerExperience extends soundworks.Experience {
       // init audio source spatializer
       let roomReverb = false;
       this.spatSourceHandler = new SpatSourcesHandler(this.loader.buffers, roomReverb);
-      this.spatSourceHandler.start();
+
+      // start spat sources
+      let startSpatSrcId = 4;
+      for( let i = startSpatSrcId; i < this.loader.buffers.length; i ++ ){
+        let initAzim = (180 / ( startSpatSrcId - 1) ) * (i - startSpatSrcId) - 90; // equi in front
+        if (initAzim < 0) initAzim = 360 + initAzim;
+        console.log(i, initAzim);
+        this.spatSourceHandler.startSource(i, initAzim);
+      }         
 
       // this.oscillator = audioContext.createOscillator();
       // this.oscillator.connect(audioContext.destination);

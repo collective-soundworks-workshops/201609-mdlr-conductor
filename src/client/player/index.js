@@ -7,10 +7,18 @@ import viewContent from '../shared/viewContent';
 
 // list of files to load (passed to the experience)
 const audioFiles = [
-  'sounds/100_celt_bass.mp3',
-  'sounds/100_celt_melody.mp3',
-  'sounds/100_gadda_harmony.mp3',
-  'sounds/100_hb_drums.mp3'
+  'sounds/0_catch.wav',
+  'sounds/0_deplacement.wav',
+  'sounds/0_drop.wav',
+  'sounds/0_niveau2.wav',
+  'sounds/BELLS.wav',
+  'sounds/BRASS.wav',
+  'sounds/CELLOS.wav',
+  'sounds/DRUMS.wav',
+  'sounds/FLUTES.wav',
+  'sounds/KEYS.wav',
+  'sounds/VIOLONS.wav',
+  'sounds/WINDS.wav',
 ];
 
 // launch application when document is fully loaded
