@@ -11,6 +11,8 @@ const audioFiles = [
   'sounds/0_deplacement.wav',
   'sounds/0_drop.wav',
   'sounds/0_niveau2.wav',
+  'sounds/0_POP LVL 2.wav',
+  'sounds/0_TUNING.wav',
   'sounds/BELLS.wav',
   'sounds/BRASS.wav',
   'sounds/CELLOS.wav',
@@ -18,7 +20,7 @@ const audioFiles = [
   'sounds/FLUTES.wav',
   'sounds/KEYS.wav',
   'sounds/VIOLONS.wav',
-  'sounds/WINDS.wav',
+  'sounds/WINDS.wav'
 ];
 
 // launch application when document is fully loaded

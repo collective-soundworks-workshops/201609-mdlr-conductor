@@ -2,9 +2,11 @@ import * as soundworks from 'soundworks/client';
 import * as soundworksCordova from 'soundworks-cordova/client';
 
 import SpatSourcesHandler from './SpatSourcesHandler';
+import SimpleAudioPlayer from './SimpleAudioPlayer';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
+const srcIdOffset = 6;
 
 // this experience plays a sound when it starts, and plays another sound when
 // other clients join the experience
@@ -39,7 +41,7 @@ export default class PlayerExperience extends soundworks.Experience {
     
     // initialize the view
     this.view.content.title = 'Maestro';
-    this.view.content.instructions = 'touch to grab instrument';
+    this.view.content.instructions = 'touch to grab instrument <br /> <br /> aim up/down: volume <br /> <br /> rotate: effect';
     this.view.content.classname = 'phase-2';
     this.view.render();
     
@@ -61,10 +63,12 @@ export default class PlayerExperience extends soundworks.Experience {
       let roomReverb = false;
       this.spatSourceHandler = new SpatSourcesHandler(this.loader.buffers, roomReverb);
 
+      // init simple audio player
+      this.simpleAudioPlayer = new SimpleAudioPlayer(this.loader.buffers);
+
       // start spat sources
-      let startSpatSrcId = 4;
-      for( let i = startSpatSrcId; i < this.loader.buffers.length; i ++ ){
-        let initAzim = (180 / ( startSpatSrcId - 1) ) * (i - startSpatSrcId) - 90; // equi in front
+      for( let i = srcIdOffset; i < this.loader.buffers.length; i ++ ){
+        let initAzim = (180 / ( srcIdOffset - 1) ) * (i - srcIdOffset) - 90; // equi in front
         if (initAzim < 0) initAzim = 360 + initAzim;
         console.log(i, initAzim);
         this.spatSourceHandler.startSource(i, initAzim);
@@ -134,6 +138,12 @@ export default class PlayerExperience extends soundworks.Experience {
     this.surface.addListener('touchstart', (id, normX, normY) => {
       // if( this.beingMovedSrcId == -1 ){ // DEBUG
         
+        // play touch start sound
+        this.simpleAudioPlayer.startSource(0);
+
+        // start displacement sound
+        this.simpleAudioPlayer.startSource(1, 0.5, true);
+
         // select closest source
         this.beingMovedSrcId = this.spatSourceHandler.getNearestSource(this.currentOrientation.azim);
         // console.log('source being moved:', this.beingMovedSrcId);
@@ -143,6 +153,11 @@ export default class PlayerExperience extends soundworks.Experience {
     });
 
     this.surface.addListener('touchend', (id, normX, normY) => {
+        // play touch end sound
+        this.simpleAudioPlayer.startSource(2, 0, false);
+        // stop displacement sound
+        this.simpleAudioPlayer.stopSource(1);
+
         // disable source motion
         this.beingMovedSrcId = -1;
         // change bkg color

@@ -5,6 +5,7 @@ import AudioPlayer from './AudioPlayer';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
+const srcIdOffset = 6;
 
 const AddedOffsetToPlayerBeaconId = 100;
 // this experience plays a sound when it starts, and plays another sound when
@@ -44,8 +45,9 @@ export default class PlayerExperience extends soundworks.Experience {
 
     // initialize the view
     console.log(this.view);
-    this.view.content.title = 'Beacon Id: 0.' + (client.index + AddedOffsetToPlayerBeaconId);
-    this.view.content.instructions = 'find your sound';
+    // this.view.content.title = 'Beacon Id: 0.' + (client.index + AddedOffsetToPlayerBeaconId);
+    this.view.content.title = 'Sound Finder <br /> <br /> lvl ' + (client.index + AddedOffsetToPlayerBeaconId);
+    this.view.content.instructions = 'explore sounds from nearest beacons <br /> <br /> touch the screen to make it your own';
     this.view.content.classname = 'phase-1';
     this.view.render();
     
@@ -182,14 +184,14 @@ export default class PlayerExperience extends soundworks.Experience {
   }
 
   beaconCallback(pluginResult) {
-    // diplay beacon list on screen
-    var log = 'Closeby Beacons: </br></br>';
-    pluginResult.beacons.forEach((beacon) => {
-      log += beacon.major + '.' + beacon.minor + ' dist: ' 
-            + Math.round( this.beacon.rssiToDist(beacon.rssi)*100, 2 ) / 100 + 'm' + '</br>' +
-             '(' + beacon.proximity + ')' + '</br></br>';
-    });
-    document.getElementById('logValues').innerHTML = log;
+    // // diplay beacon list on screen
+    // var log = 'Closeby Beacons: </br></br>';
+    // pluginResult.beacons.forEach((beacon) => {
+    //   log += beacon.major + '.' + beacon.minor + ' dist: ' 
+    //         + Math.round( this.beacon.rssiToDist(beacon.rssi)*100, 2 ) / 100 + 'm' + '</br>' +
+    //          '(' + beacon.proximity + ')' + '</br></br>';
+    // });
+    // document.getElementById('logValues').innerHTML = log;
 
     
     pluginResult.beacons.forEach((beacon) => {
@@ -204,7 +206,8 @@ export default class PlayerExperience extends soundworks.Experience {
           // console.log('keep', this.selectedSoundId, beacon.minor, dist);
           dist = 0.1;
         } 
-        this.audioPlayer.updateTrack(beacon.minor, dist);
+
+        this.audioPlayer.updateTrack(beacon.minor + srcIdOffset, dist);
       }
     });
   }

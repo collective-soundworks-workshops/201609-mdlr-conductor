@@ -3,7 +3,7 @@ import * as soundworksCordova from 'soundworks-cordova/client';
 
 import PlayerExperience1 from './PlayerExperience1';
 import PlayerExperience2 from './PlayerExperience2';
-
+import SimpleAudioPlayer from './SimpleAudioPlayer';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
@@ -14,12 +14,10 @@ const viewTemplate = `
 
     <div class="section-top flex-middle">
       <p class="big"> <%= title %> </p>
-      </br>
-      <p class="small"> <%= instructions %> </p>
     </div>
 
     <div class="section-center flex-center">
-      <p class="small" id="logValues"></p>
+      <p class="small"> <%= instructions %> </p>
     </div>
 
     <div class="section-bottom flex-middle">
@@ -80,16 +78,27 @@ export default class PlayerExperience extends soundworks.Experience {
 
     this.show();
 
+    // init simple audio player
+    this.simpleAudioPlayer = new SimpleAudioPlayer(this.loader.buffers);
 
     this.params.addParamListener('phaseId', (phaseId) => {
       
       console.log('Start phase', phaseId);
 
       if( phaseId == 1 ){
+        // start audio simple
+        this.simpleAudioPlayer.startSource(5);
+        //         
         if (this.experience !== undefined) this.reset();
         this.experience = new PlayerExperience1( this.args, this.services );
       }
       else if( phaseId == 2 ){
+        // start audio simple
+        this.simpleAudioPlayer.stopSource(5);     
+           
+        // play sound phase 2
+        this.simpleAudioPlayer.startSource(4);
+        console.log
         if (this.experience !== undefined) this.reset();
         this.experience = new PlayerExperience2( this.args, this.services );
       }
