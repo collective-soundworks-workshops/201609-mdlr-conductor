@@ -98,7 +98,7 @@ export default class PlayerExperience extends soundworks.Experience {
       }
       else if( phaseId == 2 ){
         // start audio simple
-        this.simpleAudioPlayer.stopSource(5);     
+        this.simpleAudioPlayer.stopSource(5);
            
         // play sound phase 2
         // this.simpleAudioPlayer.startSource(4);
