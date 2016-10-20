@@ -142,7 +142,7 @@ export default class PlayerExperience extends soundworks.Experience {
         this.simpleAudioPlayer.startSource(0);
 
         // start displacement sound
-        this.simpleAudioPlayer.startSource(1, 0.5, true);
+        // this.simpleAudioPlayer.startSource(1, 0.5, true);
 
         // select closest source
         this.beingMovedSrcId = this.spatSourceHandler.getNearestSource(this.currentOrientation.azim);
@@ -155,8 +155,9 @@ export default class PlayerExperience extends soundworks.Experience {
     this.surface.addListener('touchend', (id, normX, normY) => {
         // play touch end sound
         this.simpleAudioPlayer.startSource(2, 0, false);
+        
         // stop displacement sound
-        this.simpleAudioPlayer.stopSource(1);
+        // this.simpleAudioPlayer.stopSource(1);
 
         // disable source motion
         this.beingMovedSrcId = -1;

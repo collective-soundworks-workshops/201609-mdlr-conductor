@@ -29,7 +29,7 @@ export default {
   assetsDomain: '/',
 
   // port used to open the http server, in production this value is typically 80
-  port: 8000,
+  port: 8001,
 
   // describe the location where the experience takes places, theses values are
   // used by the `placer`, `checkin` and `locator` services.
@@ -54,7 +54,7 @@ export default {
 
   // socket.io configuration
   socketIO: {
-    url: 'http://129.102.60.81:8000', // (for cordova app: this url is soundwork server's)
+    url: 'http://169.254.98.76:8000', // (for cordova app: this url is soundwork server's)
     transports: ['websocket'],
     // @note: EngineIO defaults
     // pingTimeout: 3000,
