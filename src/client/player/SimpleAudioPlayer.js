@@ -54,7 +54,7 @@ export default class SimpleAudioPlayer {
 
         if( this.sourceMap.has(id) ){
             let srcObj = this.sourceMap.get(id);
-            srcObj.src.stop();
+            srcObj.src.stop(0);
         }
         
         // create audio source

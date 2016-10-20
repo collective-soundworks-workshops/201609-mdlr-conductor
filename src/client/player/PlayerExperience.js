@@ -81,6 +81,10 @@ export default class PlayerExperience extends soundworks.Experience {
     // init simple audio player
     this.simpleAudioPlayer = new SimpleAudioPlayer(this.loader.buffers);
 
+    // disable text selection and magnifier on ios
+    document.getElementsByTagName("body")[0].addEventListener("touchstart",
+    function(e) { e.returnValue = false });
+
     this.params.addParamListener('phaseId', (phaseId) => {
       
       console.log('Start phase', phaseId);
@@ -97,8 +101,7 @@ export default class PlayerExperience extends soundworks.Experience {
         this.simpleAudioPlayer.stopSource(5);     
            
         // play sound phase 2
-        this.simpleAudioPlayer.startSource(4);
-        console.log
+        // this.simpleAudioPlayer.startSource(4);
         if (this.experience !== undefined) this.reset();
         this.experience = new PlayerExperience2( this.args, this.services );
       }

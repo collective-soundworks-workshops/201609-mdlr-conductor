@@ -14,10 +14,10 @@ export default class SpatSourcesHandler {
         
         // master gain out
         this.gainOut = audioContext.createGain();
-        this.gainOut.gain.value = 1;
+        this.gainOut.gain.value = 8;
 
         // create ambisonic decoder (common to all sources)
-        this.ambisonicOrder = 1;
+        this.ambisonicOrder = 3;
         this.decoder = new ambisonics.binDecoder(audioContext, this.ambisonicOrder);
 
         // load HOA to binaural filters in decoder
@@ -67,7 +67,7 @@ export default class SpatSourcesHandler {
     }
 
     // init and start spat source. id is audio buffer id in loader service
-    startSource(id, initAzim = 0, initElev = 0, loop = true) {
+    startSource(id, initAzim = 0, initElev = 0, loop = true, fadeInDuration = 0) {
         
         // check for valid audio buffer
         if( this.buffers[id] === undefined ){
@@ -82,7 +82,9 @@ export default class SpatSourcesHandler {
 
         // create source gain
         let gain = audioContext.createGain();
-        gain.gain.value = 1.0;
+        gain.gain.value = 0.0;
+        gain.gain.setValueAtTime(gain.gain.value, audioContext.currentTime);
+        gain.gain.linearRampToValueAtTime(1.0, audioContext.currentTime + fadeInDuration);
 
         // create / init encoder (source-specific to be able to set source-specific position latter)
         let encoder = new ambisonics.monoEncoder(audioContext, this.ambisonicOrder);
@@ -104,6 +106,12 @@ export default class SpatSourcesHandler {
 
         // play source
         src.start(0);
+
+        // stop old source if already there
+        if( this.sourceMap.has(id) ){ 
+            this.sourceMap.get(id).src.stop(0);
+            this.sourceMap.delete(id)
+        }
 
         // store new spat source
         this.sourceMap.set(id, {src:src, enc:encoder, gain:gain, effect:effect});
@@ -161,13 +169,14 @@ export default class SpatSourcesHandler {
             let spatSrc = this.sourceMap.get(id);
 
             // mapping to gain value
-            let gain = 4 * value;
+            let gain = 3.5 * value;
 
             // apply
-            // spatSrc.gain.cancelScheduledValues(audioContext.currentTime);
-            // spatSrc.gain.setValueAtTime(spatSrc.gain.gain.value, audioContext.currentTime);
-            // spatSrc.gain.linearRampToValueAtTime(gain, audioContext.currentTime + 0.1);
-            spatSrc.gain.gain.value = gain;
+            spatSrc.gain.gain.cancelScheduledValues(audioContext.currentTime);
+            spatSrc.gain.gain.setValueAtTime(spatSrc.gain.gain.value, audioContext.currentTime);
+            spatSrc.gain.gain.linearRampToValueAtTime(gain, audioContext.currentTime + 0.01);
+            // spatSrc.gain.gain.value = gain;
+            // console.log(id, gain);
         }
     }
 
@@ -203,7 +212,11 @@ export default class SpatSourcesHandler {
         let srcId = -1;
         let dist = Infinity;
         this.sourceMap.forEach( (spatSrc, index) => {
-            let newDist = Math.abs( spatSrc.enc.azim - azim );
+            // make sure to get tiniest value of angle (i.e. diff 360 0 -> 0 and such)
+            let newDist = spatSrc.enc.azim - azim ;
+            if (newDist > 180) newDist = 360 - newDist;
+            if (newDist < -180) newDist += 360;
+            newDist = Math.abs(newDist);
             if( newDist < dist ){
                 srcId = index;
                 dist = newDist;

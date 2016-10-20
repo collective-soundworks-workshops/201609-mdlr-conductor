@@ -31,10 +31,11 @@ const audioFiles = [
   'sounds/0_niveau2.wav',
   'sounds/0_POP LVL 2.wav',
   'sounds/0_TUNING.wav',
-  'sounds/DRUMS_SNARE.mp3',
-  'sounds/KEYS_BELLS.mp3',
+  'sounds/0_TOUCH.wav',
   'sounds/VIOLONS_CELLOS.mp3',
+  'sounds/KEYS_BELLS.mp3',
   'sounds/WINDS_BRASS_FLUTE.mp3',
+  'sounds/DRUMS_SNARE.mp3',
 ];
 
 // const audioFiles = [

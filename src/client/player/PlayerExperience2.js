@@ -6,7 +6,7 @@ import SimpleAudioPlayer from './SimpleAudioPlayer';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
-const srcIdOffset = 6;
+const srcIdOffset = 7;
 
 // this experience plays a sound when it starts, and plays another sound when
 // other clients join the experience
@@ -34,6 +34,10 @@ export default class PlayerExperience extends soundworks.Experience {
     this.phaseId = 2;
 
     this.start();
+
+    this.isOrientationInitialized = false;
+    this.savedAzim = 0;
+    this.offsetAzim = 0;
   }
 
   init() {
@@ -41,7 +45,7 @@ export default class PlayerExperience extends soundworks.Experience {
     
     // initialize the view
     this.view.content.title = 'Maestro';
-    this.view.content.instructions = 'touch to grab instrument <br /> <br /> aim up/down: volume <br /> <br /> rotate: effect';
+    this.view.content.instructions = 'touch to start! <br /> <br /> then touch to grab instrument <br /> <br /> aim up/down: volume <br /> <br /> rotate wrist: effect';
     this.view.content.classname = 'phase-2';
     this.view.render();
     
@@ -64,15 +68,10 @@ export default class PlayerExperience extends soundworks.Experience {
       this.spatSourceHandler = new SpatSourcesHandler(this.loader.buffers, roomReverb);
 
       // init simple audio player
-      this.simpleAudioPlayer = new SimpleAudioPlayer(this.loader.buffers);
+      this.simpleAudioPlayer = new SimpleAudioPlayer(this.loader.buffers);    
 
-      // start spat sources
-      for( let i = srcIdOffset; i < this.loader.buffers.length; i ++ ){
-        let initAzim = (180 / ( srcIdOffset - 1) ) * (i - srcIdOffset) - 90; // equi in front
-        if (initAzim < 0) initAzim = 360 + initAzim;
-        console.log(i, initAzim);
-        this.spatSourceHandler.startSource(i, initAzim);
-      }         
+      // start tunning sound
+      this.simpleAudioPlayer.startSource(5, 10, true);
 
       // this.oscillator = audioContext.createOscillator();
       // this.oscillator.connect(audioContext.destination);
@@ -90,7 +89,7 @@ export default class PlayerExperience extends soundworks.Experience {
         // if selected source (touch) then..
 
         // move source: stabilize azimuth
-        let val = data[0];
+        let val = data[0] - this.offsetAzim;
         if (Math.abs(data[1]) > 90){
           if( data[0] < 180)  val =  val + 180;
           else val = val - 180;
@@ -117,44 +116,77 @@ export default class PlayerExperience extends soundworks.Experience {
       });
     }
 
-    // setup motion input listeners (shake to change listening mode)
-    if (this.motionInput.isAvailable('accelerationIncludingGravity')) {
-      this.motionInput.addListener('accelerationIncludingGravity', (data) => {
+    // // setup motion input listeners (shake to change listening mode)
+    // if (this.motionInput.isAvailable('accelerationIncludingGravity')) {
+    //   this.motionInput.addListener('accelerationIncludingGravity', (data) => {
 
-          // get acceleration data
-          const mag = Math.sqrt(data[0] * data[0] + data[1] * data[1] + data[2] * data[2]);
+    //       // get acceleration data
+    //       const mag = Math.sqrt(data[0] * data[0] + data[1] * data[1] + data[2] * data[2]);
 
-          // switch between spatialized mono sources / HOA playing on shaking (+ throttle inputs)
-          if (mag > 40 && ( (audioContext.currentTime - this.lastShakeTime) > 0.5) ){
-            // update throttle timer
-            this.lastShakeTime = audioContext.currentTime;
-            // do something
-            // ...
-          }
-      });
-    }
+    //       // switch between spatialized mono sources / HOA playing on shaking (+ throttle inputs)
+    //       if (mag > 40 && ( (audioContext.currentTime - this.lastShakeTime) > 0.5) ){
+    //         // update throttle timer
+    //         this.lastShakeTime = audioContext.currentTime;
+
+    //         // play init orientation sound
+    //         // this.simpleAudioPlayer.startSource(6);
+
+    //       }
+    //   });
+    // }
 
     // setup touch listeners (reset listener orientation on touch)
     this.surface.addListener('touchstart', (id, normX, normY) => {
-      // if( this.beingMovedSrcId == -1 ){ // DEBUG
+      if( !this.isOrientationInitialized ){
+
+        // init ori
+        this.offsetAzim = this.currentOrientation.azim;
+
+        // stop tunning sound
+        this.simpleAudioPlayer.stopSource(5, 0);
+
+        // play sound init ok
+        this.simpleAudioPlayer.startSource(4);
+
+        // start spat sources
+        for( let i = srcIdOffset; i < this.loader.buffers.length; i ++ ){
+          let numSound = this.loader.buffers.length - srcIdOffset;
+          let initAzim = (180 / (numSound - 1) ) * (i - srcIdOffset) - 90; // equi in front
+          if (initAzim < 0) initAzim = 360 + initAzim;
+          console.log(i, initAzim);
+          this.spatSourceHandler.startSource(i, initAzim, 0, true, 4);
+        }     
+
+        return
+      }
+      
         
         // play touch start sound
-        this.simpleAudioPlayer.startSource(0);
+        this.simpleAudioPlayer.startSource(6);
 
         // start displacement sound
         // this.simpleAudioPlayer.startSource(1, 0.5, true);
 
         // select closest source
         this.beingMovedSrcId = this.spatSourceHandler.getNearestSource(this.currentOrientation.azim);
-        // console.log('source being moved:', this.beingMovedSrcId);
+        console.log('source being moved:', this.beingMovedSrcId);
         
         // change bkg color
         this.view.$el.lastElementChild.className = "foreground phase-" + this.phaseId + "-screen-touched";
+      
     });
 
     this.surface.addListener('touchend', (id, normX, normY) => {
+
+        if( !this.isOrientationInitialized ){
+          this.isOrientationInitialized = true;
+          return
+        }
+
+
         // play touch end sound
-        this.simpleAudioPlayer.startSource(2, 0, false);
+        // this.simpleAudioPlayer.startSource(2, 0, false);
+        this.simpleAudioPlayer.startSource(6);
         
         // stop displacement sound
         // this.simpleAudioPlayer.stopSource(1);
