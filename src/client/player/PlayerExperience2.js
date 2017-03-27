@@ -8,19 +8,14 @@ const audioContext = soundworks.audioContext;
 const client = soundworks.client;
 const srcIdOffset = 7;
 
-// this experience plays a sound when it starts, and plays another sound when
-// other clients join the experience
+/** 
+* Control the instrument of a virtual orchestra in front of you. 
+Player can grasp instruments to change their position / volume / filter effect
+**/
 export default class PlayerExperience extends soundworks.Experience {
   constructor(args, services) {
     super(!args.standalone);
 
-    // args
-    this.view = args.view;
-    this.surface = args.surface;
-
-    // services
-    this.loader = services.loader;
-    this.motionInput = services.motionInput;
 
     // bind
     this.init = this.init.bind(this);
@@ -41,7 +36,6 @@ export default class PlayerExperience extends soundworks.Experience {
   }
 
   init() {
-    console.log('phase 2: init');
     
     // initialize the view
     this.view.content.title = 'Maestro';

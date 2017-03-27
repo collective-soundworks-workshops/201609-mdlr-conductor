@@ -10,14 +10,14 @@ const audioContext = soundworks.audioContext;
 **/
 
 export default class SpatSourcesHandler {
-    constructor(bufferSources, roomReverb = false) {
+    constructor(bufferSources, roomReverb = false, ambiOrder = 2) {
         
         // master gain out
         this.gainOut = audioContext.createGain();
         this.gainOut.gain.value = 8;
 
         // create ambisonic decoder (common to all sources)
-        this.ambisonicOrder = 2;
+        this.ambisonicOrder = ambiOrder;
         this.decoder = new ambisonics.binDecoder(audioContext, this.ambisonicOrder);
 
         // load HOA to binaural filters in decoder

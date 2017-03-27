@@ -16,15 +16,6 @@ process.env.NODE_ENV = config.env;
 // initialize application with configuration options
 soundworks.server.init(config);
 
-// define parameters shared by different clients
-const sharedParams = soundworks.server.require('shared-params');
-sharedParams.addText('numPlayers', 'num players', 0, ['conductor']);
-sharedParams.addText('phaseId', 'Phase', 2);
-sharedParams.addTrigger('switchPhase', 'switch phase');
-
-// create server side conductor experience
-const conductor = new soundworks.BasicSharedController('conductor');
-
 // define the configuration object to be passed to the `.ejs` template
 soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) => {
 
@@ -69,7 +60,7 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
 // `src/server/playerExperience.js`) and the server side `playerExperience`.
 // - we could also map activities to additional client types (thus defining a
 //   route (url) of the following form: `/${clientType}`)
-const experience = new PlayerExperience(['player', 'beacon']);
+const experience = new PlayerExperience(['player']);
 
 // start application
 soundworks.server.start();
